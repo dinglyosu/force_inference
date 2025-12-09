@@ -130,7 +130,7 @@ class CellDataset(Dataset):
         self.validation_split = validation_split
 
         self.in_channels = in_channels
-        self.in_unique = np.unique([int(x) for ch in self.in_channels for x in ch])
+        # self.in_unique = np.unique([int(x) for ch in self.in_channels for x in ch])
         self.out_channels = out_channels
        
         self.test_cells = test_cells
@@ -344,15 +344,18 @@ class CellDataset(Dataset):
                 zyx_im /= zyx_im.max() # to center around 0                
                 return zyx_im
 
-            def rm_baseline_act(act_im, idx):      
+            def rm_baseline_act(act_im, idx):   
+                act_im = float(act_im)
+                print(act_im.max)
                 act_im -= act_im.min()
                 act_im /= act_im.max() # to center around 0                
+                act_im /= 10 # to center around 0                
                 return act_im
         
 
         elif remove_type == 'none':
             def rm_baseline_zyx(zyx_im, idx): return zyx_im
-            def rm_baseline_act(act_im, idx): return act_im/10
+            def rm_baseline_act(act_im, idx): return act_im
         else: 
             if self.verbose: print('Default inputbaseline removal')
             def rm_baseline_zyx(zyx_im, idx): return (zyx_im - zyx_im.min())/1000
@@ -381,7 +384,7 @@ class CellDataset(Dataset):
         
         if mask_crop: image = self.mask_crop(image)
 
-        in_unique = np.unique([int(x) for ch in self.in_channels for x in ch])
+        # in_unique = np.unique([int(x) for ch in self.in_channels for x in ch])
         # if 4 in in_unique:             
         if True:
             image[4] /= np.max(image[4])
@@ -394,11 +397,30 @@ class CellDataset(Dataset):
 
         image = self.transform(image)
         mask = image[4].unsqueeze(0)
-        zyxin= image[6].unsqueeze(0)
-        actin = image[7].unsqueeze(0)
+        weight = image[3].unsqueeze(0)
+        
+        input_seg_channels = 1
+        output_seg_channels = 2
+        
+        if(self.in_channels==6):
+            input_seg_channels = 1
+            output_seg_channels = 2
+
+        if(self.in_channels==7):  
+            input_seg_channels = 2
+            output_seg_channels = 1
+
+        if(self.in_channels[0]==7):  
+            input_seg_channels = 2
+            output_seg_channels = 1
+            
+        input_seg =  image[input_seg_channels].unsqueeze(0)  
+        output_seg =  image[output_seg_channels].unsqueeze(0)  
+        
         output = image[self.out_channels].unsqueeze(0)
-  
-        return {'mask': image[4].unsqueeze(0), 'zyxin': image[6].unsqueeze(0), 'actin': image[7].unsqueeze(0), 'output': output}
+        input = image[self.in_channels].unsqueeze(0)
+
+        return {'mask': mask, 'weight': weight, 'input_seg':input_seg,'output_seg':output_seg,'input' : input, 'output': output,'zyxin':image[6].unsqueeze(0),'actin':image[7].unsqueeze(0) }
     
             
     

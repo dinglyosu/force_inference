@@ -246,7 +246,7 @@ class UNet(nn.Module):
 
     # Calculate loss
         expweight = self.loss_hparams.get('exp_weight')*self.reg_scheduler(  self.loss_hparams.get('exp_schedule'), 1., epoch)
-        loss_dict = self.loss_function(prediction, batch['output'], expweight=expweight) 
+        loss_dict = self.loss_function(prediction, batch['output'],batch['mask'], batch['weight'],batch['input'],expweight=expweight) 
         # loss_dict contains potential loss values. The one which should be gradded is called 'base_loss'
 
 
@@ -283,13 +283,13 @@ class UNet(nn.Module):
             prediction = self(self.select_inputs(self.input_type, batch))
 
         # Calculate loss
-            loss_dict = self.loss_function(prediction, batch['output']) # This is a dictionary of potential loss values. The one which should be gradded is called 'base_loss'
+            loss_dict = self.loss_function(prediction, batch['output'],batch['mask'],batch['weight'],batch['input']) # This is a dictionary of potential loss values. The one which should be gradded is called 'base_loss'
 
             loss = loss_dict['base_loss'] 
             loss_dict = {**loss_dict}
 
             expweight = self.loss_hparams.get('exp_weight')*self.reg_scheduler(  self.loss_hparams.get('exp_schedule'), 1., epoch)
-            loss_dict = self.loss_function(prediction, batch['output'], expweight=expweight) 
+            loss_dict = self.loss_function(prediction, batch['output'],batch['mask'], batch['weight'],batch['input'],expweight=expweight) 
             # Contains loss values. The one which should be gradded is called 'base_loss'
 
             loss = loss_dict['base_loss'] 
@@ -408,17 +408,12 @@ class UNet(nn.Module):
                 if torch.is_tensor(output): output = output.cpu().numpy()
                 if torch.is_tensor(prediction): prediction = prediction.cpu().numpy()
 
-                mag_T = output[b][0] if self.angmag else  np.linalg.norm(output[b], axis=0)
-                mag_P = prediction[b][0] if self.angmag else  np.linalg.norm(prediction[b], axis=0)
+                print(output.shape)
 
-                ax[b][0].imshow(input[b][0]/input[b][0].max(), origin='lower', **cscheme['input'](input, b))
-
-                ax[b][1].imshow( mag_T, origin='lower', vmax=4, cmap='inferno')
-                ax[b][1].quiver(*utils_plot.make_vector_field(*output[b], downsample=20, threshold=0.4, angmag=self.angmag), color='w', width=0.003, scale=20)
-
-                ax[b][2].imshow( mag_P, origin='lower', vmax=4, cmap='inferno')
-                ax[b][2].quiver(*utils_plot.make_vector_field(*prediction[b], downsample=20, threshold=0.4, angmag=self.angmag), color='w', width=0.003, scale=20)
-
+                ax[b][0].imshow(input, origin='lower', **cscheme['input'](input, b))
+                ax[b][1].imshow(output, origin='lower', vmax=4, cmap='inferno')
+                ax[b][2].imshow(prediction, origin='lower', vmax=4, cmap='inferno')
+                
     
         for a in ax.flat: a.axis('off')
 

@@ -1,4 +1,6 @@
 data/
+zyxin2pfak_results/
+results/
 tensorboard_logs
 */__pycache__
 launch*
